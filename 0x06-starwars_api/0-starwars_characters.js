@@ -1,25 +1,35 @@
 #!/usr/bin/node
+/* Star Wars Characters */
 const request = require('request');
-const API_URL = 'https://swapi-api.hbtn.io/api';
 
-if (process.argv.length > 2) {
-  request(`${API_URL}/films/${process.argv[2]}/`, (err, _, body) => {
-    if (err) {
-      console.log(err);
-    }
-    const charactersURL = JSON.parse(body).characters;
-    const charactersName = charactersURL.map(
-      url => new Promise((resolve, reject) => {
-        request(url, (promiseErr, __, charactersReqBody) => {
-          if (promiseErr) {
-            reject(promiseErr);
-          }
-          resolve(JSON.parse(charactersReqBody).name);
-        });
-      }));
-
-    Promise.all(charactersName)
-      .then(names => console.log(names.join('\n')))
-      .catch(allErr => console.log(allErr));
+const fetch = (url) => {
+  return new Promise((resolve, reject) => {
+    request(url, (error, response, body) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(JSON.parse(body));
+      }
+    });
   });
-}
+};
+
+const fetchCharacter = (url) => {
+  return fetch(url).then(data => data.name);
+};
+
+const fetchFilmCharacters = (id) => {
+  const url = `https://swapi-api.alx-tools.com/api/films/${id}`;
+
+  fetch(url).then(data => {
+    const CharactersPromises = data.characters.map(url => fetchCharacter(url));
+    return Promise.all(CharactersPromises);
+  }).then(names => {
+    names.forEach(name => console.log(name));
+  }).catch(error => console.error(error));
+};
+
+const args = process.argv.slice(2);
+const id = args[0];
+
+fetchFilmCharacters(id);
